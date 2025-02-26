@@ -1,0 +1,29 @@
+{
+  "name": "pay_backend",
+  "version": "0.0.1",
+  "description": "Backend for crypto gateway",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js"
+  },
+  "dependencies": {
+    "async-retry": "^1.3.3",
+    "axios": "^1.7.9",
+    "body-parser": "^1.20.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "helmet": "^8.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongodb": "^6.9.0",
+    "mongoose": "^8.10.2",
+    "morgan": "^1.10.0",
+    "nodemon": "^3.1.7",
+    "redis": "^4.7.0",
+    "stripe": "^17.7.0",
+    "winston": "^3.17.0"
+  },
+  "author": "asta1984",
+  "license": "MIT"
+}
