@@ -1,11 +1,10 @@
 const express = require('express');
 const router = express.Router();
-const redisClient = require('config/redisClient');
-const Payment = require('models/Payment');
+const redisClient = require('../config/redisClient');
+const Payment = require('../models/Payment');
 const authMiddleware = require('../middleware/authMiddleware');
-const { processExternalPayment } = require('../services/paymentService'); // Payment provider logic
+const { processExternalPayment } = require('../services/paymentService');
 
-// Process Payment Route (Idempotent)
 router.post('/payments', authMiddleware, async (req, res) => {
     const idempotencyKey = req.headers['idempotency-key'];
     if (!idempotencyKey) {
@@ -13,13 +12,13 @@ router.post('/payments', authMiddleware, async (req, res) => {
     }
 
     try {
-        // Check Redis for previous response
+        // Check if request has already been processed (idempotency)
         const cachedResponse = await redisClient.get(idempotencyKey);
         if (cachedResponse) {
             return res.json(JSON.parse(cachedResponse));
         }
 
-        // Save Payment to DB (Initially Pending)
+        // Save initial payment record in DB
         const payment = await Payment.create({
             userId: req.user.id,
             orderId: req.body.orderId,
@@ -27,14 +26,19 @@ router.post('/payments', authMiddleware, async (req, res) => {
             status: "processing"
         });
 
-        // Process with External Payment Provider
-        const paymentResult = await processExternalPayment(req.body);
+        // Call Jupiter Web3 Payment Service
+        const paymentResult = await processExternalPayment({
+            amount: req.body.amount,
+            sourceToken: req.body.sourceToken, // e.g., USDC mint address
+            destinationToken: req.body.destinationToken, // e.g., SOL mint address
+            userWallet: req.body.userWallet // User's Solana wallet
+        });
 
-        // Update Payment Status
+        // Update payment status
         payment.status = paymentResult.success ? "completed" : "failed";
         await payment.save();
 
-        // Cache Response in Redis (Idempotency)
+        // Store in Redis for idempotency (1 hour expiry)
         await redisClient.set(idempotencyKey, JSON.stringify(payment), { EX: 3600 });
 
         return res.json(payment);
